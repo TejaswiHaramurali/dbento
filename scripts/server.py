@@ -5,19 +5,26 @@ import time;
 import sys;
 from argparse import ArgumentParser;
 import traceback;
+import select;
+import logging;
 
 
 def ProcessMessage(msg, GroupMap, df):
-    print(df);
+    logging.debug("  Current state of the datframe.");
+    logging.debug(df);
     timestamp = int(time.time());
     rowlist = [];
     rowmap = {};
-    partition = GroupMap.get(msg, None);
+    msgstr = msg.decode('utf-8');
+    if msgstr == '' or len(msgstr) != 1:
+        logging.error("  Received invalid input." + str(msg));
+        return;
+    partition = GroupMap.get(msgstr[0], None);
     if partition is None:
-        print("ERROR: Unable to find symbol " + str(msg));
+        logging.error("  Unable to find symbol " + str(msgstr[0]));
         return;
     rowmap['Timestamp'] = timestamp;
-    rowmap['Symbol'] = msg;
+    rowmap['Symbol'] = msgstr[0];
     rowmap['Group'] = partition;
     rowlist.append(rowmap);
     if df.empty:
@@ -25,11 +32,12 @@ def ProcessMessage(msg, GroupMap, df):
     else:
         if (df.iloc[0])['Timestamp'] == timestamp:
             df = df.append(rowlist);
-            print(df['Group'].value_counts());
+            logging.debug("  Current status of Messages vs partitions they belong to.")
+            logging.debug(df['Group'].value_counts());
             valuemap = df['Group'].value_counts();
             values = (valuemap.to_dict()).values();
             if max(values) > 3:
-                print("\nERROR: TRADING VIOLATION ALERT.");
+                logging.critical("  TRADING VIOLATION ALERT.");
                 sys.exit();
         else:
             df = df[0:0];
@@ -40,20 +48,19 @@ def ProcessMessage(msg, GroupMap, df):
 def PartitionSymbols(num_grps):
     alphabets = [chr(i) for i in range(65, 91)];
     random.shuffle(alphabets);
-    print(alphabets);
     groups = [];
     for grp in range(0, num_grps):
         size = random.randint(1, (len(alphabets) - (num_grps-grp-1)));
-        print(size);
+        logging.debug("  Size of group " + str(grp) + "-> " + str(size));
         group = alphabets[0:size];
         groups.append(group);
         alphabets = alphabets[size:len(alphabets)];
     if len(alphabets) != 0:
-        print("\nINFO: leftover alphabets");
-        print(alphabets);
+        logging.debug("  Alphabets that are left over.");
+        logging.debug(alphabets);
         groups[random.randint(0, len(groups)-1)].extend(alphabets);
-    print("\nINFO: Groups is");
-    print(groups);
+    logging.debug("  Symbols have been partitioned into the following groups ");
+    logging.debug(groups);
     return groups;
 
 
@@ -78,31 +85,39 @@ def main():
     parser.add_argument("--port",
         help="Port on which server application must be started.", type=int, default=None);
 
-    args = parser.parser_args();
+    parser.add_argument("--verbose", action='store_true',
+        help="Determines whether debug messages need to be printed..");
+
+    args = parser.parse_args();
+
+    if args.verbose == True:
+        logging.basicConfig(level=logging.DEBUG);
+    else:
+        logging.basicConfig(level=logging.INFO);
 
     if args.ipaddress is None or args.ipaddress == "":
-        print("\nERROR: IP address is a mandatory parameter.");
+        logging.error("  IP address is a mandatory parameter.");
         sys.exit();
     try:
         socket.inet_aton(args.ipaddress);
     
     except socket.error:
-        print("\nERROR: Invalid server IP address specified.\n");
+        logging.error("  Invalid server IP address specified.\n");
         sys.exit();
 
     if args.port <= 0 or args.port >= 65536:
-        print("\nERROR: Invalid port specified..\n");
+        logging.error("  Invalid port specified.\n");
         sys.exit(); 
 
     if args.partitions > 26:
-        print("\nERROR: Number of partitions cannot be greater than total number of alphabets (26).");
+        logging.error("  Number of partitions cannot be greater than total number of alphabets (26).");
         sys.exit();
     elif args.partitions <= 0:
-        print("\nERROR: Number of partitions must be a positive number between (1-26).");
+        logging.error("  Number of partitions must be a positive number between (1-26).");
         sys.exit();
 
     if args.rate_limit <= 0:
-        print("\nERROR: Maximum limit of messages per sec cannot be zero or negative.");
+        logging.error("  Maximum limit of messages per sec cannot be zero or negative.");
         sys.exit();
 
     groups_list = PartitionSymbols(args.partitions);
@@ -110,15 +125,24 @@ def main():
     df = pd.DataFrame(columns=['Timestamp', 'Symbol', 'Group']);
 
     try:
-        print("\nINFO: Waiting for incoming client connection.");
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM);
+        s.bind((args.ipaddress, args.port));
+        s.listen(5);
+        logging.info("  Waiting for incoming client connection.");
         conn, addr = s.accept();
-        print("\nINFO: Incoming client connection from " + str(addr));
+        logging.info("  Incoming client connection from " + str(addr));
         while True:
+            inputs = [];
+            inputs.append(conn);
+            readable, writable, exceptional = select.select(inputs, [], []);
             data = conn.recv(1028);
-            ## <TEJ> Validata data here##
-            df = ProcessMessage(data, group_map, df);
+            if data is None or len(data) == 0:
+                continue;
+            else:
+                ## <TEJ> Validata data here##
+                df = ProcessMessage(data, group_map, df);
     except Exception as e:
-        print("\nALERT: Exception occurred.");
+        logging.error("  Exception occurred.");
         traceback.print_exc();
 
 
