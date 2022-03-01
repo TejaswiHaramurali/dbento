@@ -7,7 +7,7 @@
       sudo python3.6 scripts/server.py --ipaddress 127.0.0.1 --port 5555 --verbose 
   ```
   
-### <b>Executing the Server</b>
+### <b>Executing the Client</b>
   sudo python3.6 scripts/client.py --ipaddress IPADDRESS --port PORT
   ```
   Eg:
