@@ -57,12 +57,20 @@ def main():
         time.sleep(0.1);        
         '''
         sock.send(b"A");
+        data = sock.recv(1028);
+        print(data);
         time.sleep(0.1);
         sock.send(b"A");
+        data = sock.recv(1028);
+        print(data);
         time.sleep(0.1);
         sock.send(b"A");
+        data = sock.recv(1028);
+        print(data);
         time.sleep(0.1);
         sock.send(b"A");
+        data = sock.recv(1028);
+        print(data);
         time.sleep(0.1);
 
         sock.send(b"G");
@@ -79,6 +87,7 @@ def main():
         sock.send(b"k");
         time.sleep(0.1);
 
+        sock.close();
     except Exception as e:
         print("\nALERT: Exception occurred.");
         traceback.print_exc();

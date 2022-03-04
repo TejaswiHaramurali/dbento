@@ -7,6 +7,16 @@ from argparse import ArgumentParser;
 import traceback;
 import select;
 import logging;
+import signal;
+
+
+def signal_handler(signum, frame):
+    if signum == signal.SIGINT:
+        logging.info("  Terminating the server program.");
+        sys.exit();
+    elif signum == signal.SIGPIPE:
+        logging.info("  Client closed the connection.");
+        sys.exit();
 
 
 def ProcessMessage(msg, GroupMap, df):
@@ -15,20 +25,22 @@ def ProcessMessage(msg, GroupMap, df):
     timestamp = int(time.time());
     rowlist = [];
     rowmap = {};
+    retval = -1;
     msgstr = msg.decode('utf-8');
     if msgstr == '' or len(msgstr) != 1:
         logging.error("  Received invalid input." + str(msg));
-        return;
+        return (df, 1);
     partition = GroupMap.get(msgstr[0], None);
     if partition is None:
         logging.error("  Unable to find symbol " + str(msgstr[0]));
-        return;
+        return (df, 1);
     rowmap['Timestamp'] = timestamp;
     rowmap['Symbol'] = msgstr[0];
     rowmap['Group'] = partition;
     rowlist.append(rowmap);
     if df.empty:
         df = df.append(rowlist);
+        retval = 0;
     else:
         if (df.iloc[0])['Timestamp'] == timestamp:
             df = df.append(rowlist);
@@ -38,11 +50,14 @@ def ProcessMessage(msg, GroupMap, df):
             values = (valuemap.to_dict()).values();
             if max(values) > 3:
                 logging.critical("  TRADING VIOLATION ALERT.");
-                sys.exit();
+                retval = 1;
+            else:
+                retval = 0;
         else:
             df = df[0:0];
             df = df.append(rowlist);
-    return df;
+            retval = 0;
+    return (df, retval);
             
 
 def PartitionSymbols(num_grps):
@@ -120,6 +135,9 @@ def main():
         logging.error("  Maximum limit of messages per sec cannot be zero or negative.");
         sys.exit();
 
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGPIPE, signal_handler);
+
     groups_list = PartitionSymbols(args.partitions);
     group_map = GetGroupMap(groups_list);
     df = pd.DataFrame(columns=['Timestamp', 'Symbol', 'Group']);
@@ -134,13 +152,22 @@ def main():
         while True:
             inputs = [];
             inputs.append(conn);
-            readable, writable, exceptional = select.select(inputs, [], []);
+            readable, writable, exceptions = select.select(inputs, [], []);
+            if len(readable) == 0:
+                logging.error("  Invalid file descriptor returned.");
+                conn.close();
+                break;
+            elif len(exceptions) != 0:
+                logging.error("  Socket Closed by client.");
+                break;
+            conn = readable[0];
             data = conn.recv(1028);
             if data is None or len(data) == 0:
                 continue;
             else:
                 ## <TEJ> Validata data here##
-                df = ProcessMessage(data, group_map, df);
+                (df, retval) = ProcessMessage(data, group_map, df);
+                conn.send(retval.to_bytes(1, "big"));
     except Exception as e:
         logging.error("  Exception occurred.");
         traceback.print_exc();
