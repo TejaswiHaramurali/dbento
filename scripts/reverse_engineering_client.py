@@ -41,54 +41,38 @@ def main():
         sys.exit();
 
     try:
+        partitions = [];
+        symbols = [chr(i) for i in range(65, 91)];
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM);
         print("\nINFO: Initiating connection to exchange server.");
         sock.connect((args.ipaddress, args.port));
-        '''
-        sock.send(b"A");
-        time.sleep(0.1);
-        sock.send(b"A");
-        time.sleep(0.1);
-        sock.send(b"A");
-        time.sleep(0.1);
-        sock.send(b"B");
-        time.sleep(0.1);
-        sock.send(b"C");
-        time.sleep(0.1);        
-        '''
-        sock.send(b"A");
-        data = sock.recv(1028);
-        print(data);
-        time.sleep(0.1);
-        sock.send(b"A");
-        data = sock.recv(1028);
-        print(data);
-        time.sleep(0.3);
-        sock.send(b"A");
-        data = sock.recv(1028);
-        print(data);
-        time.sleep(0.59);
-        sock.send(b"A");
-        data = sock.recv(1028);
-        print(data);
-        time.sleep(0.1);
-
-        '''
-        sock.send(b"G");
-        time.sleep(0.1);
-        sock.send(b"J");
-        time.sleep(0.1);
-        sock.send(b"N");
-        time.sleep(0.1);
-
-        sock.send(b"f");
-        time.sleep(0.1);
-        sock.send(b"");
-        time.sleep(0.1);
-        sock.send(b"k");
-        time.sleep(0.1);
-        '''
-
+        for symbol in symbols:
+            isFound = False;
+            for partition in partitions:
+                if len(partition) == 0:
+                    continue;
+                else:
+                    ch = partition[0];
+                    for i in range(0, args.rate_limit):
+                        sock.send((str(ch)).encode('utf-8'));
+                        data = sock.recv(1028);
+                        time.sleep(0.1);
+                    sock.send((str(symbol)).encode('utf-8'));
+                    data = sock.recv(1028);
+                    time.sleep(0.1);
+                    retval = int.from_bytes(data, 'little');
+                    if retval == 1:  #symbol is part of this partition.
+                        partition.append(symbol);
+                        isFound = True;
+                        break;
+                    else:
+                        continue;
+            if isFound == False:
+                partitions.append([symbol]);
+            time.sleep(2.5);
+        filehandle = open("client_symbols.txt", "w");
+        filehandle.write(str(partitions));
+        filehandle.close(); 
         sock.close();
     except Exception as e:
         print("\nALERT: Exception occurred.");

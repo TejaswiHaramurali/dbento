@@ -22,7 +22,7 @@ def signal_handler(signum, frame):
 def ProcessMessage(msg, GroupMap, df):
     logging.debug("  Current state of the datframe.");
     logging.debug(df);
-    timestamp = int(time.time());
+    timestamp = int(time.time() * 1000.0);
     rowlist = [];
     rowmap = {};
     retval = -1;
@@ -37,12 +37,13 @@ def ProcessMessage(msg, GroupMap, df):
     rowmap['Timestamp'] = timestamp;
     rowmap['Symbol'] = msgstr[0];
     rowmap['Group'] = partition;
+    logging.debug("  Timestamp -> " + str(timestamp) + ", Symbol -> " + str(msgstr[0]) + ", Group -> " + str(partition));
     rowlist.append(rowmap);
     if df.empty:
         df = df.append(rowlist);
         retval = 0;
     else:
-        if (df.iloc[0])['Timestamp'] == timestamp:
+        if ((df.iloc[0])['Timestamp'] + 1000) >= timestamp:
             df = df.append(rowlist);
             logging.debug("  Current status of Messages vs partitions they belong to.")
             logging.debug(df['Group'].value_counts());
@@ -76,6 +77,13 @@ def PartitionSymbols(num_grps):
         groups[random.randint(0, len(groups)-1)].extend(alphabets);
     logging.debug("  Symbols have been partitioned into the following groups ");
     logging.debug(groups);
+    filehandle = open("server_symbols.txt", "w");
+    newgroups = groups[:];
+    for newgrp in newgroups:
+        newgrp.sort();
+    newgroups.sort();
+    filehandle.write(str(newgroups));
+    filehandle.close();
     return groups;
 
 
