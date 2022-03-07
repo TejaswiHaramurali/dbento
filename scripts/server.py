@@ -37,7 +37,7 @@ def ProcessMessage(msg, GroupMap, df, rate_limit):
     rowmap['Timestamp'] = timestamp;
     rowmap['Symbol'] = msgstr[0];
     rowmap['Group'] = partition;
-    logging.debug("  Timestamp -> " + str(timestamp) + ", Symbol -> " + str(msgstr[0]) + ", Group -> " + str(partition));
+    #logging.debug("  Timestamp -> " + str(timestamp) + ", Symbol -> " + str(msgstr[0]) + ", Group -> " + str(partition));
     rowlist.append(rowmap);
     if df.empty:
         df = df.append(rowlist);
@@ -45,8 +45,8 @@ def ProcessMessage(msg, GroupMap, df, rate_limit):
     else:
         if ((df.iloc[0])['Timestamp'] + 1000) >= timestamp:
             df = df.append(rowlist);
-            logging.debug("  Current status of Messages vs partitions they belong to.")
-            logging.debug(df['Group'].value_counts());
+            #logging.debug("  Current status of Messages vs partitions they belong to.")
+            #logging.debug(df['Group'].value_counts());
             valuemap = df['Group'].value_counts();
             values = (valuemap.to_dict()).values();
             if max(values) > rate_limit:
@@ -139,8 +139,8 @@ def main():
         logging.error("  Number of partitions must be a positive number between (1-26).");
         sys.exit();
 
-    if args.rate_limit <= 0:
-        logging.error("  Maximum limit of messages per sec cannot be zero or negative.");
+    if args.rate_limit <= 0 or args.rate_limit > 200:
+        logging.error("  Maximum limit of messages per sec must be in the range 1-200.");
         sys.exit();
 
     signal.signal(signal.SIGINT, signal_handler)

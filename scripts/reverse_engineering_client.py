@@ -36,8 +36,8 @@ def main():
         print("\nERROR: Invalid port specified.\n");
         sys.exit(); 
 
-    if args.rate_limit <= 0:
-        print("\nERROR: Maximum limit of messages per sec cannot be zero or negative.");
+    if args.rate_limit <= 0 or args.rate_limit > 200:
+        print("\nERROR: Maximum limit of messages per sec must be in the range 1-200.");
         sys.exit();
 
     try:
