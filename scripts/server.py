@@ -19,7 +19,7 @@ def signal_handler(signum, frame):
         sys.exit();
 
 
-def ProcessMessage(msg, GroupMap, df):
+def ProcessMessage(msg, GroupMap, df, rate_limit):
     logging.debug("  Current state of the datframe.");
     logging.debug(df);
     timestamp = int(time.time() * 1000.0);
@@ -49,7 +49,7 @@ def ProcessMessage(msg, GroupMap, df):
             logging.debug(df['Group'].value_counts());
             valuemap = df['Group'].value_counts();
             values = (valuemap.to_dict()).values();
-            if max(values) > 3:
+            if max(values) > rate_limit:
                 logging.critical("  TRADING VIOLATION ALERT.");
                 retval = 1;
             else:
@@ -174,7 +174,7 @@ def main():
                 continue;
             else:
                 ## <TEJ> Validata data here##
-                (df, retval) = ProcessMessage(data, group_map, df);
+                (df, retval) = ProcessMessage(data, group_map, df, args.rate_limit);
                 conn.send(retval.to_bytes(1, "big"));
     except Exception as e:
         logging.error("  Exception occurred.");

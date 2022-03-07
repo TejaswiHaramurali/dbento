@@ -48,6 +48,7 @@ def main():
         sock.connect((args.ipaddress, args.port));
         for symbol in symbols:
             isFound = False;
+            print("INFO: Determining partition for symbol " + str(symbol));
             for partition in partitions:
                 if len(partition) == 0:
                     continue;
@@ -56,16 +57,15 @@ def main():
                     for i in range(0, args.rate_limit):
                         sock.send((str(ch)).encode('utf-8'));
                         data = sock.recv(1028);
-                        time.sleep(0.1);
                     sock.send((str(symbol)).encode('utf-8'));
                     data = sock.recv(1028);
-                    time.sleep(0.1);
                     retval = int.from_bytes(data, 'little');
                     if retval == 1:  #symbol is part of this partition.
                         partition.append(symbol);
                         isFound = True;
                         break;
                     else:
+                        time.sleep(1.2);
                         continue;
             if isFound == False:
                 partitions.append([symbol]);
