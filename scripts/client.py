@@ -44,52 +44,45 @@ def main():
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM);
         print("\nINFO: Initiating connection to exchange server.");
         sock.connect((args.ipaddress, args.port));
-        '''
-        sock.send(b"A");
-        time.sleep(0.1);
-        sock.send(b"A");
-        time.sleep(0.1);
-        sock.send(b"A");
-        time.sleep(0.1);
-        sock.send(b"B");
-        time.sleep(0.1);
-        sock.send(b"C");
-        time.sleep(0.1);        
-        '''
-        sock.send(b"A");
-        data = sock.recv(1028);
-        print(data);
-        time.sleep(0.1);
-        sock.send(b"A");
-        data = sock.recv(1028);
-        print(data);
-        time.sleep(0.3);
-        sock.send(b"A");
-        data = sock.recv(1028);
-        print(data);
-        time.sleep(0.59);
-        sock.send(b"A");
-        data = sock.recv(1028);
-        print(data);
-        time.sleep(0.1);
 
-        '''
-        sock.send(b"G");
-        time.sleep(0.1);
-        sock.send(b"J");
-        time.sleep(0.1);
-        sock.send(b"N");
-        time.sleep(0.1);
+        ## Failure test cases (sending rate_limit+1 msgs within one sec) ##
+        for i in range(0, (args.rate_limit+1)):
+            sock.send(b"A");
+            data = sock.recv(1028);
 
-        sock.send(b"f");
-        time.sleep(0.1);
-        sock.send(b"");
-        time.sleep(0.1);
-        sock.send(b"k");
-        time.sleep(0.1);
-        '''
+        time.sleep(1.5);
+        
+        for i in range(0, (args.rate_limit+1)):
+            sock.send(b"E");
+            data = sock.recv(1028);
 
+        time.sleep(1.5);
+
+        for i in range(0, (args.rate_limit+1)):
+            sock.send(b"K");
+            data = sock.recv(1028);
+
+        time.sleep(1.5);
+
+        for i in range(0, (args.rate_limit+1)):
+            sock.send(b"P");
+            data = sock.recv(1028);
+
+        time.sleep(1.5);
+
+        for i in range(0, (args.rate_limit+1)):
+            sock.send(b"T");
+            data = sock.recv(1028);
+
+        time.sleep(1.5);
+
+        for i in range(0, (args.rate_limit+1)):
+            sock.send(b"Y");
+            data = sock.recv(1028);
+
+        time.sleep(1.5);
         sock.close();
+
     except Exception as e:
         print("\nALERT: Exception occurred.");
         traceback.print_exc();

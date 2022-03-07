@@ -1,11 +1,18 @@
 # dbento
 
+### <b>Dependencies</b>
+  This project requires Python 3.6 & two packages that can be installed through PIP in the following way.
+  - pip3.6 install pandas
+  - pip3.6 install robotframework
+
+
 ### <b>Executing the Server</b> 
   sudo python3.6 scripts/server.py --ipaddress IPADDRESS --port PORT --verbose   (verbose mode is optional for debugging.)
   ```
   Eg:
       sudo python3.6 scripts/server.py --ipaddress 127.0.0.1 --port 5555 --verbose 
   ```
+
   
 ### <b>Executing the Client</b>
   sudo python3.6 scripts/client.py --ipaddress IPADDRESS --port PORT
@@ -15,6 +22,21 @@
   Eg:
       sudo python3.6 scripts/client.py --ipaddress 127.0.0.1 --port 5555
   ```
+
+
+### <b>Testing</b>
+  The Robot test framework has been used to write test-cases for this project. The test scripts are present
+  under the <b><i>tests/</i></b> folder.
+
+  Each of these scripts can be run using the command
+  ```
+  sudo robot <test_script>.robot
+
+  Eg:
+      sudo robot tests/default_11partitions_200rate.robot 
+  ```
+  This will display test results on the screen, and also generate XML/HTML test reports in the current directory.
+
 
 ### <b> Notes </b>
 
